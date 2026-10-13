@@ -1,7 +1,8 @@
 // Sesión del usuario (RF-1). Se guarda en sessionStorage: se borra al cerrar la pestaña.
-// El token expira a los 15 min (NFR-SEG-9); al vencer, la sesión se cierra sola.
+// El token de acceso dura 15 min (NFR-SEG-9) y se renueva con el refresh token (RF-1.2);
+// cuando el refresh vence o se revoca, la sesión se cierra sola.
 import { createContext, useCallback, useContext, useEffect, useState } from 'react';
-import { api, setAlExpirarSesion, setToken } from './api';
+import { api, setManejadoresSesion, setTokens } from './api';
 
 const CLAVE = 'cuidarte_sesion';
 const AuthContext = createContext(null);
@@ -9,8 +10,8 @@ const AuthContext = createContext(null);
 const leerSesion = () => {
   try {
     const s = JSON.parse(sessionStorage.getItem(CLAVE));
-    if (s && new Date(s.expira_en) > new Date()) {
-      setToken(s.token);
+    if (s?.token && s?.refresh_token) {
+      setTokens(s.token, s.refresh_token);
       return s;
     }
   } catch {
@@ -22,8 +23,18 @@ const leerSesion = () => {
 export function AuthProvider({ children }) {
   const [sesion, setSesion] = useState(leerSesion);
 
+  const guardar = useCallback((datos) => {
+    setTokens(datos.token, datos.refresh_token);
+    try {
+      sessionStorage.setItem(CLAVE, JSON.stringify(datos));
+    } catch {
+      // sin acción
+    }
+    setSesion(datos);
+  }, []);
+
   const limpiar = useCallback(() => {
-    setToken(null);
+    setTokens(null, null);
     try {
       sessionStorage.removeItem(CLAVE);
     } catch {
@@ -33,31 +44,20 @@ export function AuthProvider({ children }) {
   }, []);
 
   useEffect(() => {
-    setAlExpirarSesion(limpiar);
-  }, [limpiar]);
-
-  // Cierre automático al expirar el token
-  useEffect(() => {
-    if (!sesion) return undefined;
-    const ms = new Date(sesion.expira_en) - new Date();
-    const t = setTimeout(limpiar, Math.max(ms, 0));
-    return () => clearTimeout(t);
-  }, [sesion, limpiar]);
+    setManejadoresSesion({ alExpirar: limpiar, alRenovar: guardar });
+  }, [limpiar, guardar]);
 
   const login = async (nombreUsuario, password) => {
     const datos = await api('/auth/login', {
       method: 'POST',
       body: { nombre_usuario: nombreUsuario, password },
     });
-    setToken(datos.token);
-    try {
-      sessionStorage.setItem(CLAVE, JSON.stringify(datos));
-    } catch {
-      // sin acción
-    }
-    setSesion(datos);
+    guardar(datos);
     return datos.usuario;
   };
+
+  // RF-2.1: autoregistro (la cuenta se crea con rol paciente)
+  const registrarse = (datos) => api('/auth/registro', { method: 'POST', body: datos });
 
   const logout = async () => {
     try {
@@ -69,7 +69,7 @@ export function AuthProvider({ children }) {
   };
 
   return (
-    <AuthContext.Provider value={{ usuario: sesion?.usuario ?? null, login, logout }}>
+    <AuthContext.Provider value={{ usuario: sesion?.usuario ?? null, login, logout, registrarse }}>
       {children}
     </AuthContext.Provider>
   );
