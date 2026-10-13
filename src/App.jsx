@@ -3,9 +3,12 @@
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom';
 import { AuthProvider, useAuth } from './auth';
 import Layout from './components/Layout';
-import Login, { rutaInicio } from './pages/Login';
+import Login from './pages/Login';
+import Registro from './pages/Registro';
+import Inicio from './pages/Inicio';
 import Pacientes from './pages/Pacientes';
 import PacienteDetalle from './pages/PacienteDetalle';
+import Usuarios from './pages/Usuarios';
 import Auditoria from './pages/Auditoria';
 
 function RequiereSesion({ children }) {
@@ -15,12 +18,7 @@ function RequiereSesion({ children }) {
 
 function RequiereRol({ roles, children }) {
   const { usuario } = useAuth();
-  return roles.includes(usuario.rol) ? children : <Navigate to={rutaInicio(usuario)} replace />;
-}
-
-function Inicio() {
-  const { usuario } = useAuth();
-  return <Navigate to={rutaInicio(usuario)} replace />;
+  return roles.includes(usuario.rol) ? children : <Navigate to="/" replace />;
 }
 
 function NoEncontrado() {
@@ -33,6 +31,7 @@ export default function App() {
       <BrowserRouter>
         <Routes>
           <Route path="/login" element={<Login />} />
+          <Route path="/registro" element={<Registro />} />
           <Route
             element={
               <RequiereSesion>
@@ -50,6 +49,14 @@ export default function App() {
               }
             />
             <Route path="pacientes/:id" element={<PacienteDetalle />} />
+            <Route
+              path="usuarios"
+              element={
+                <RequiereRol roles={['admin']}>
+                  <Usuarios />
+                </RequiereRol>
+              }
+            />
             <Route
               path="auditoria"
               element={
