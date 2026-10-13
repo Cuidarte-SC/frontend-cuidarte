@@ -54,14 +54,19 @@ export function Campo({ id, label, error, ayuda, as = 'input', className = '', .
   );
 }
 
+const ESTILOS_ALERTA = {
+  error: 'border-red-700 bg-red-50 text-red-900',
+  exito: 'border-green-700 bg-green-50 text-green-900',
+  info: 'border-blue-700 bg-blue-50 text-blue-900',
+};
+
 export function Alerta({ tipo = 'error', children }) {
   if (!children) return null;
-  const estilo =
-    tipo === 'error'
-      ? 'border-red-700 bg-red-50 text-red-900'
-      : 'border-green-700 bg-green-50 text-green-900';
   return (
-    <div role={tipo === 'error' ? 'alert' : 'status'} className={`rounded-lg border-l-4 p-3 text-base ${estilo}`}>
+    <div
+      role={tipo === 'error' ? 'alert' : 'status'}
+      className={`rounded-lg border-l-4 p-3 text-base ${ESTILOS_ALERTA[tipo]}`}
+    >
       {children}
     </div>
   );
@@ -88,3 +93,11 @@ export function Tarjeta({ titulo, children, acciones }) {
     </section>
   );
 }
+
+// Fecha ISO -> 'AAAA-MM-DD' en hora local (para inputs type="date")
+export const aFechaInput = (valor) => {
+  const d = valor ? new Date(valor) : new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+};
+
+export const formatoFecha = (valor) => new Date(valor).toLocaleDateString('es-CL');

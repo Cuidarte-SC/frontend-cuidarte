@@ -3,7 +3,7 @@ import { NavLink, Outlet, useNavigate } from 'react-router-dom';
 import { useAuth } from '../auth';
 import { Boton } from './ui';
 
-const ROLES = { admin: 'Administrador', medico: 'Médico', paciente: 'Paciente' };
+export const ROLES = { admin: 'Administrador', medico: 'Médico', paciente: 'Paciente' };
 
 const claseEnlace = ({ isActive }) =>
   `inline-flex min-h-11 items-center rounded-lg px-3 text-base font-medium ${
@@ -18,6 +18,17 @@ export default function Layout() {
     await logout();
     navigate('/login');
   };
+
+  const enlaces = [{ to: '/', texto: 'Inicio', end: true }];
+  if (usuario.rol === 'paciente') {
+    if (usuario.paciente_id) enlaces.push({ to: `/pacientes/${usuario.paciente_id}`, texto: 'Mi ficha' });
+  } else {
+    enlaces.push({ to: '/pacientes', texto: 'Gestión de Pacientes' });
+  }
+  if (usuario.rol === 'admin') {
+    enlaces.push({ to: '/usuarios', texto: 'Gestión de Usuarios' });
+    enlaces.push({ to: '/auditoria', texto: 'Auditoría' });
+  }
 
   return (
     <div className="min-h-screen">
@@ -42,26 +53,13 @@ export default function Layout() {
         </div>
         <nav aria-label="Menú principal" className="mx-auto max-w-5xl px-4 pb-3">
           <ul className="flex flex-wrap gap-2">
-            {usuario.rol === 'paciente' ? (
-              <li>
-                <NavLink to={`/pacientes/${usuario.paciente_id}`} className={claseEnlace}>
-                  Mi ficha
+            {enlaces.map((e) => (
+              <li key={e.to}>
+                <NavLink to={e.to} end={e.end} className={claseEnlace}>
+                  {e.texto}
                 </NavLink>
               </li>
-            ) : (
-              <li>
-                <NavLink to="/pacientes" className={claseEnlace}>
-                  Gestión de Pacientes
-                </NavLink>
-              </li>
-            )}
-            {usuario.rol === 'admin' && (
-              <li>
-                <NavLink to="/auditoria" className={claseEnlace}>
-                  Auditoría
-                </NavLink>
-              </li>
-            )}
+            ))}
           </ul>
         </nav>
       </header>
